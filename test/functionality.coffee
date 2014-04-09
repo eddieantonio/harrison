@@ -78,7 +78,7 @@ describe 'The README example', ->
 
   it 'should serve the home page', (done) ->
     # Does this even make sense?
-    hasHomepageLink = ///<a href=['"]?\/['"]?> Homepage///
+    hasHomepageLink = ///<a[^>]+href=['"]?/['"]?> Homepage///
     hasStylesheetLink = ///<link[^>]+href=['"]?/static/css/styles.css["']?///
 
     request(readmeExample)

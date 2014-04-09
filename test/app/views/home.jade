@@ -1,0 +1,12 @@
+//- Tests two inserted local functions: static() and global().
+doctype html
+html
+
+  head
+    title My SubApp
+    link(rel="stylesheet", href=static('/css/styles.css'))
+
+  body
+    h1 Welcome to my wonderful page.
+    a(href="Back to homepage", href=global('home'))
+

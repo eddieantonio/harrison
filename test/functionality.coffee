@@ -12,36 +12,53 @@ require '../'
 appFactory = require './app'
 
 describe 'Patched Express application', ->
+  app = appFactory()
+  it 'should have a #mainApp() method', ->
+    expect(app.mainApp).to.exist
+  it 'should have a #addSubapp() method', ->
+    expect(app.addSubapp).to.exist
 
-  describe 'as a main app', ->
-    app = appFactory()
-
-    it 'should have a #mainApp() method', ->
-      expect(app.mainApp).to.exist
-      app.mainApp()
-
-    it 'should serve a generated page', (done) ->
-      request(app)
-        .get('/')
-        .expect('Content-Type', /html/)
-        .expect(200, done)
-
-        # TODO: Make sure static links are all here.
-
-    it 'should probably do some other stuff as well :/'
-
-describe 'A parent app', ->
+describe 'In the parent app', ->
 
   app = express()
   
-  describe '#addSubapp()', ->
-    it 'should exist!', ->
-      expect(app.addSubapp).to.exist
+  describe '#addSubapp()', (done) ->
+    it 'should mount an app as main if not given an explict mount', ->
+      mainApp = appFactory()
+      app.addSubapp(mainApp)
 
-    it 'should mount an app as main if not given an explict mount'
-    it 'should add a subapp'
-    it 'should notify its child that it exists'
-    it 'should provide global routing'
+      expect(app._subapps).to.exist
+      expect(app._subapps.apps).to.have.key('/')
+      expect(app._subapps.apps['/']).to.equal(mainApp)
+
+      request(mainApp)
+        .get('/')
+        .expect(200)
+
+    it 'should add a subapp', (done) ->
+      subapp = appFactory()
+      app.addSubapp('/saboo', subapp)
+      
+      expect(app._subapps.apps).to.have.keys('/', '/saboo')
+
+      request(app)
+        .get('/saboo/')
+        .expect(200, done)
+
+    it 'should notify its child that it exists', ->
+      subapp = appFactory()
+      app.addSubapp('/hasParent', subapp)
+
+      expect(subapp.get('parent')).to.equal(app)
+
+    it 'should provide global routing', ->
+      subapp = appFactory()
+      app.addSubapp('/naboo', subapp)
+
+      expect(subapp.locals.global).to.exist
+        .and.to.be.a('function')
+
+      # Should also, you know... test that it returns expected results..
 
 
 describe 'A subapp', ->
@@ -52,12 +69,11 @@ describe 'A subapp', ->
 
 describe 'The README example', ->
 
-  # This is the readme example.
   readmeExample = require './app/server'
 
   it 'should serve a static file from the normal app', (done) ->
     request(readmeExample)
-      .get('/public/css/styles.css')
+      .get('/static/css/styles.css')
       .expect(200, /Comic Sans MS/, done)
 
   it 'should serve the home page', (done) ->

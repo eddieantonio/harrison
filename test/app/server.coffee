@@ -1,7 +1,7 @@
 # Essentially, the example given in the README.
 
 require '../../'
-subapp = require './' # index.coffee -- app factory
+subapp = require './' # index.coffee -- an app factory
 express = require 'express'
 
 app = module.exports = express()

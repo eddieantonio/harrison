@@ -8,6 +8,7 @@
   },
   "author": "Eddie Antonio Santos <easantos@ualberta.ca>",
   "license": "MIT",
+  "repository": "https://github.com/eddieantonio/harrison.git",
   "dependencies": {
     "express": ">= 3.3.0 < 4.x",
     "extend": "^1.2.1"

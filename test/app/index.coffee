@@ -3,16 +3,15 @@
 express = require 'express'
 
 module.exports = (options={}) ->
-
   app = express()
 
+  # View stuff.
   app.engine('jade', require('jade').__express)
   app.set 'view engine', 'jade'
   app.set 'views', __dirname + '/views'
 
   # Harrison settings:
   app.set 'harrison static', __dirname + '/public'
-
 
   # Middleware.
   # Note the absence of logging, statics, and catch-all error handling.

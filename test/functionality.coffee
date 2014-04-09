@@ -38,6 +38,7 @@ describe 'A parent app', ->
     it 'should exist!', ->
       expect(app.addSubapp).to.exist
 
+    it 'should mount an app as main if not given an explict mount'
     it 'should add a subapp'
     it 'should notify its child that it exists'
     it 'should provide global routing'
@@ -48,4 +49,25 @@ describe 'A subapp', ->
   it 'should be mountable on another app'
   it 'should respond to any sort of mount path'
   it 'should still serve statics'
+
+describe 'The README example', ->
+
+  # This is the readme example.
+  readmeExample = require './app/server'
+
+  it 'should serve a static file from the normal app', (done) ->
+    request(readmeExample)
+      .get('/public/css/styles.css')
+      .expect(200, /Comic Sans MS/, done)
+
+  it 'should serve the home page', (done) ->
+    # Does this even make sense?
+    hasHomepageLink = ///<a href=['"]?\/['"]?> Homepage///
+    hasStylesheetLink = ///<link[^>]+href=['"]?/static/css/styles.css["']?///
+
+    request(readmeExample)
+      .get('/')
+      .expect(hasHomepageLink)
+      .expect(hasStylesheetLink)
+      .expect(200, done)
 

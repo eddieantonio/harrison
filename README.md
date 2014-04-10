@@ -8,10 +8,10 @@ You can convert any old Express app into a Harrison app in three easy (read: som
 
 ## Step One
 
-Export your app! Wrapping it in a customizable fucntion is recommended, but
-not required!
+Export your app! Wrapping it in a configurable factory function is
+recommended, but not required!
 
-Turn this:
+**Turn this:**
 
 
 ```js
@@ -32,7 +32,7 @@ app.get('/', function (req, res) {
 app.listen(3000);
 ```
 
-Into this:
+**Into this:**
 
 ```js
 // index.js

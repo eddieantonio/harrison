@@ -12,13 +12,14 @@ harrison = require '../'
 appFactory = require './app'
 
 describe 'Harrison', ->
-  it 'should be constructed with an Express app', ->
+  it 'must be constructed with an Express app', ->
     expect(->
       subapps = harrison(null)
     ).to.throw(Error)
 
     mainApp = express()
     expect(harrison(mainApp)).to.exist
+
 
   describe '#addApp()', ->
 
@@ -28,21 +29,26 @@ describe 'Harrison', ->
       # but we can expect that they respond to the same methods.
       initial = harrison(app)
 
-      expect(initial).to.respondTo('addApp')
-        .and.to.respondTo('create')
+      expect(initial).itself.to.respondTo('addApp')
+        # Should look like Connect middleware.
+        .and.to.be.a('function')
+        .and.to.have.property('length', 3)
 
       afterAdd = initial.addApp(appFactory())
 
-      expect(afterAdd).to.respondTo('addApp')
+      expect(afterAdd).itself.to.respondTo('addApp')
         .and.to.respondTo('create')
+        .and.to.be.a('function')
+      expect(afterAdd.length).to.equal(3)
 
-      # #create is not expected to be fluent.
+      # create() should be a no-op.
+      expect(afterAdd.create()).to.equal(afterAdd)
+
 
     it '[unary] should mount a main app', (done) ->
       app = express()
       subapps = harrison(app)
         .addApp(appFactory())
-        .create()
 
       app.use(subapps)
 
@@ -50,11 +56,11 @@ describe 'Harrison', ->
         .get('/')
         .expect(200, done)
 
+
     it '[binary] should mount an app at the specified mount point', (done) ->
       app = express()
       subapps = harrison(app)
         .addApp('/saboo', appFactory())
-        .create()
       app.use(subapps)
 
       request(app)
@@ -77,7 +83,6 @@ describe 'Harrison', ->
         # appFactory!
         .addApp('/', customAppFactory, {})
         .addApp('/saboo', customAppFactory, name: 'Saboo')
-        .create()
       mainApp.use(subapps)
 
       # This is the callback to the first request...
@@ -98,10 +103,27 @@ describe 'Harrison', ->
       subapp = appFactory()
       subapps = harrison(app)
         .addApp('/hasParent', subapp)
-        .create()
 
       expect(subapp.get('parent')).to.equal(app)
 
+
+
+  describe 'view locals:', ->
+    # This is before support for named routes.
+
+    describe 'local()', ->
+      it 'should return absolute paths for main app'
+
+    describe 'global()', ->
+      it 'should return absolute paths from other named apps'
+
+    describe 'static()', ->
+      it 'should return absolute path for statics for this named app', ->
+        app = express()
+        subapp = express()
+        harrison(app).addApp(subapp)
+
+        subapp.get 'name'
 
 
 describe 'The README example', ->

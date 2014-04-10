@@ -1,10 +1,16 @@
 /**
- * Monkey-patches the Express application prototype with our new methods.
+ * Creates a new fluent Harrison object.
  */
 
-var extendedPrototype = require('./lib/extended-prototype');
-var express = require('express');
-var extend = require('extend');
+var Harrison = require('./lib/harrison');
 
-extend(express.application, extendedPrototype);
+module.exports = makeHarrison;
+
+function makeHarrison(app, options) {
+  if (!app) {
+    throw new Error('Must take Express app as first argument.');
+  }
+
+  return new Harrison(app, options);
+}
 

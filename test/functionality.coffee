@@ -13,7 +13,7 @@ appFactory = require './app'
 
 describe 'Harrison', ->
   it 'should be constructed with an Express app', ->
-    expect( do ->
+    expect(->
       subapps = harrison(null)
     ).to.throw(Error)
 
@@ -31,7 +31,7 @@ describe 'Harrison', ->
       expect(initial).to.respondTo('addApp')
         .and.to.respondTo('create')
 
-      afterAdd = initial.addApp(appFactory)
+      afterAdd = initial.addApp(appFactory())
 
       expect(afterAdd).to.respondTo('addApp')
         .and.to.respondTo('create')
@@ -56,7 +56,7 @@ describe 'Harrison', ->
         .get('/')
         .expect(200)
 
-    it '[binary] should mount an app at the specified mount point', ->
+    it '[binary] should mount an app at the specified mount point', (done) ->
       app = express()
       subapps = harrison(app)
         .addApp('/saboo', appFactory())

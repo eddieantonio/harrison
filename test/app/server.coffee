@@ -3,7 +3,7 @@
 express = require 'express'
 harrison = require '../../'
 
-subapp = require './index' # an app factory
+appFactory = require './index' # an app factory
 
 app = module.exports = express()
 
@@ -11,7 +11,7 @@ app.use(express.logger('dev'))
 
 # Mounting as "main app".
 app.use(harrison(app)
-  .addApp(subapp)
+  .addApp(appFactory())
   .create())
 
 # Statics are handled *after* the rest of the... stuff.

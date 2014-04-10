@@ -1,16 +1,20 @@
 # Essentially, the example given in the README.
 
-require '../../'
-subapp = require './' # index.coffee -- an app factory
 express = require 'express'
+harrison = require '../../'
+
+subapp = require './index' # an app factory
 
 app = module.exports = express()
 
 app.use(express.logger('dev'))
+
 # Mounting as "main app".
-app.addSubapp(subapp)
+app.use(harrison(app)
+  .addApp(subapp)
+  .create())
+
 # Statics are handled *after* the rest of the... stuff.
-app.mainApp()
 app.use(express.errorHandler())
 
 unless module.parent

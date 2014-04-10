@@ -8,128 +8,166 @@ You can convert any old Express app into a Harrison app in three easy (read: som
 
 ## Step One
 
-Wrap the app in a factory function and export it!
+Export your app! Wrapping it in a customizable fucntion is recommended, but
+not required!
 
 Turn this:
 
-    // index.js
-    var express = require('express');
-    var app = express();
 
-    app.use(express.logger('dev'));
-    app.use(express.bodyParser());
-    app.use(express.static(__dirname + '/public'));
-    app.use(app.router);
-    app.use(express.errorHandler());
+```js
+// index.js
+var express = require('express');
+var app = express();
 
-    app.get('/', function (req, res) {
-      res.send('Hello, world!');
-    });
+app.use(express.logger('dev'));
+app.use(express.bodyParser());
+app.use(express.static(__dirname + '/public'));
+app.use(app.router);
+app.use(express.errorHandler());
 
-    app.listen(3000);
+app.get('/', function (req, res) {
+    res.send('Hello, world!');
+});
+
+app.listen(3000);
+```
 
 Into this:
 
-    // index.js
-    var express = require('express');
+```js
+// index.js
+var express = require('express');
 
-    var factory = module.exports = function (options) {
-      var app = express();
+// This module's main export is the app factory.
+module.exports = appFactory;
 
-      app.use(express.logger('dev'));
-      app.use(express.bodyParser());
-      app.use(express.static(__dirname + '/public'));
-      app.use(app.router);
-      app.use(express.errorHandler());
+function appFactory(options) {
+  var app = express();
 
-      app.get('/', function (req, res) {
-        res.send('Hello, world!');
-      });
-    };
+  app.use(express.logger('dev'));
+  app.use(express.bodyParser());
+  app.use(express.static(__dirname + '/public'));
+  app.use(app.router);
+  app.use(express.errorHandler());
 
-    /* If running as main... */
-    if (!module.parent) {
-      var app = appFactory();
-      app.listen(3000);
-    }
+  app.get('/', function (req, res) {
+  res.send('Hello, world!');
+  });
+
+  return app;
+};
+
+
+/* If running as main... */
+if (!module.parent) {
+  var app = appFactory();
+  app.listen(3000);
+}
+```
 
 # Step two
 
 Remove statics, and "common" middleware.
 
-    // index.js
-    var express = require('express');
+```js
+// index.js
+var express = require('express');
 
-    var factory = module.exports = function (options) {
-      var app = express();
+module.exports = appFactory;
 
-      /*
-       * This line:
-       *
-       *   app.use(express.static(__dirname + '/public'));
-       *
-       * Turns into this:
-       */
-      app.set('harrison static', __dirname + '/public');
+function appFactory(options) {
+  var app = express();
 
-      app.use(app.router);
+  /*
+   * This line:
+   *
+   *   app.use(express.static(__dirname + '/public'));
+   *
+   * Turns into this:
+   */
+  app.set('harrison static', __dirname + '/public');
 
-      app.get('/', function (req, res) {
-        res.send('Hello, world!');
-      });
-    };
+  app.use(app.router);
 
-    /* If running as main... */
-    if (!module.parent) {
-      var app = appFactory();
-      app.listen(3000);
-    }
+  app.get('/', function (req, res) {
+    res.send('Hello, world!');
+  });
+
+  return app;
+};
+
+/* If running as main... */
+if (!module.parent) {
+  var app = appFactory();
+  app.listen(3000);
+}
+```
 
 # Step three
 
-Use Harrison `mainApp()`.
+Use Harrison!
 
 **Note**: now the main is in `server.js`.
 
-    // index.js
-    var express = require('express');
+```js
+// index.js
+var express = require('express');
 
-    var factory = module.exports = function (options) {
-      var app = express();
+module.exports = appFactory;
 
-      /*
-       * This line:
-       *
-       *   app.use(express.static(__dirname + '/public'));
-       *
-       * Turns into this:
-       */
-      app.set('harrison static', __dirname + '/public');
+function appFactory(options) {
+  var app = express();
 
-      app.use(app.router);
+  app.set('harrison static', __dirname + '/public');
 
-      app.get('/', function (req, res) {
-        res.send('Hello, world!');
-      });
-    };
+  app.use(app.router);
+
+  app.get('/', function (req, res) {
+    res.send('Hello, world!');
+  });
+
+  return app;
+};
+```
 
 
 And in the newly created `server.js`:
 
-    // server.js
+```js
+// server.js
 
-    /* Note: Must go before app require. */
-    var harrison = require('harrison');
-    var subapp = require('./'); // index.js -- app factory
-    var express = require('express');
-    var app = express();
+var harrison = require('harrison');
+var appFactory = require('./index');
+var express = require('express');
 
-    app.use(express.logger('dev'));
-    // Mounting as "main app".
-    app.addSubapp(subapp);
-    /* Note: Call order matters since mainApp() calls app#use() for statics. */
-    app.mainApp();
-    app.use(express.errorHandler());
+var app = express();
 
-    app.listen(3000);
+var subapps = harrison(app)
+  // Provide the Express app to #addApp() to make it the "main" app.
+  .addApp(appFactory());
+  .create();
+
+/*
+ * Can also use these forms:
+ *
+ * Explicitly specify the mount:
+ *
+ *    subapps.addApp('/mount', appFactory());
+ *
+ * Give the app factory and some additional configuration. The benefit
+ * is that Harrison will add the property { parent: app } to the options
+ * object, allowing the subapp to configure itself differently knowing it's
+ * a subapp.
+ *
+ *    subapps.addApp('/', appFactory, { withBodyParser: true })
+ *
+ */
+
+app.use(express.logger('dev'));
+/* Note: Order matters since subapps includes statics. */
+app.use(subapps);
+app.use(express.errorHandler());
+
+app.listen(3000);
+```
 

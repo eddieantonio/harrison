@@ -6,60 +6,83 @@ request = require 'supertest'
 # Monkey-patch the Express app.
 # Note that this *MUST* be done before the app factory is require'd!
 express = require 'express'
-require '../'
+harrison = require '../'
 
 # Get the initial app factory.
 appFactory = require './app'
 
-describe 'Patched Express application', ->
-  app = appFactory()
-  it 'should have a #mainApp() method', ->
-    expect(app.mainApp).to.exist
-  it 'should have a #addSubapp() method', ->
-    expect(app.addSubapp).to.exist
+describe 'Harrison', ->
+  it 'should be constructed with an Express app', ->
+    expect( do ->
+      subapps = harrison(null)
+    ).to.throw(Error)
 
-describe 'In the parent app', ->
+    mainApp = express()
+    expect(harrison(mainApp)).to.exist
 
-  app = express()
-  
-  describe '#addSubapp()', (done) ->
-    it 'should mount an app as main if not given an explict mount', ->
-      mainApp = appFactory()
-      app.addSubapp(mainApp)
+  describe '#addApp()', ->
 
-      expect(app._subapps).to.exist
-      expect(app._subapps.apps).to.have.key('/')
-      expect(app._subapps.apps['/']).to.equal(mainApp)
+    it 'should implement a fluent interface', ->
+      app = express()
+      # So... we can't be sure that the *exact* same object will be returned
+      # but we can expect that they respond to the same methods.
+      initial = harrison(app)
 
-      request(mainApp)
+      expect(initial).to.respondTo('addApp')
+        .and.to.respondTo('create')
+
+      afterAdd = initial.addApp(appFactory)
+
+      expect(afterAdd).to.respondTo('addApp')
+        .and.to.respondTo('create')
+
+      # #create is not expected to be fluent.
+
+    it '[unary] should mount a main app', ->
+      app = express()
+      subapps = harrison(app)
+        .addApp(appFactory())
+        .create()
+
+      app.use(subapps)
+
+      # Weird old tests... might want to find a better way to test this.
+      ->
+        expect(app).to.exist
+        expect(app._subapps.apps).to.have.key('/')
+        expect(app._subapps.apps['/']).to.equal(mainApp)
+
+      request(app)
         .get('/')
         .expect(200)
 
-    it 'should add a subapp', (done) ->
-      subapp = appFactory()
-      app.addSubapp('/saboo', subapp)
-      
-      expect(app._subapps.apps).to.have.keys('/', '/saboo')
+    it '[binary] should mount an app at the specified mount point', ->
+      app = express()
+      subapps = harrison(app)
+        .addApp('/saboo', appFactory())
+        .create()
+      app.use(subapps)
+
+      # Once again... weird old tests.
+      ->
+        expect(app._subapps.apps).to.have.key('/saboo')
 
       request(app)
         .get('/saboo/')
         .expect(200, done)
 
+    it '[ternary] should accept an app factory, and configure it'
+
     it 'should notify its child that it exists', ->
+      app = express()
       subapp = appFactory()
-      app.addSubapp('/hasParent', subapp)
+      subapps = harrison(app)
+        .addApp('/hasParent', subapp)
+        .create()
 
       expect(subapp.get('parent')).to.equal(app)
 
-    it 'should provide global routing', ->
-      subapp = appFactory()
-      app.addSubapp('/naboo', subapp)
-
-      expect(subapp.locals.global).to.exist
-        .and.to.be.a('function')
-
-      # Should also, you know... test that it returns expected results..
-
+    it 'should provide global routing...?'
 
 describe 'A subapp', ->
   it 'should declare statics'
@@ -77,7 +100,7 @@ describe 'The README example', ->
       .expect(200, /Comic Sans MS/, done)
 
   it 'should serve the home page', (done) ->
-    # Does this even make sense?
+    # These are pretty brittle regexes, to be honest.
     hasHomepageLink = ///<a[^>]+href=['"]?/['"]?> Homepage///
     hasStylesheetLink = ///<link[^>]+href=['"]?/static/css/styles.css["']?///
 

@@ -112,10 +112,25 @@ describe 'Harrison', ->
     # This is before support for named routes.
 
     describe 'local()', ->
-      it 'should return absolute paths for main app'
+      it 'should return an absolute path for the current sub app', (done) ->
+        subapp = express()
+        subapp.get '/', (req, res) ->
+          { local } = subapp.locals
+          res.redirect(local('/nifty-goods'))
+        subapp.get '/nifty-goods', (req, res) ->
+          res.send(200, "It's nifty.")
+
+        app = express()
+        app.use(harrison(app).addApp('/nested/path/subapp', subapp))
+
+        request(app)
+          .get('/nested/path/subapp')
+          .expect('Location', '/nested/path/subapp/nifty-goods')
+          .expect(302, done)
+
 
     describe 'global()', ->
-      it 'should return absolute paths from other named apps'
+      it 'should return absolute paths to other named apps'
 
     describe 'static()', ->
       it 'should return absolute path for statics for this named app', ->

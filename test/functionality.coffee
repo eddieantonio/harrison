@@ -38,7 +38,7 @@ describe 'Harrison', ->
 
       # #create is not expected to be fluent.
 
-    it '[unary] should mount a main app', ->
+    it '[unary] should mount a main app', (done) ->
       app = express()
       subapps = harrison(app)
         .addApp(appFactory())
@@ -46,15 +46,9 @@ describe 'Harrison', ->
 
       app.use(subapps)
 
-      # Weird old tests... might want to find a better way to test this.
-      ->
-        expect(app).to.exist
-        expect(app._subapps.apps).to.have.key('/')
-        expect(app._subapps.apps['/']).to.equal(mainApp)
-
       request(app)
         .get('/')
-        .expect(200)
+        .expect(200, done)
 
     it '[binary] should mount an app at the specified mount point', (done) ->
       app = express()
@@ -63,15 +57,41 @@ describe 'Harrison', ->
         .create()
       app.use(subapps)
 
-      # Once again... weird old tests.
-      ->
-        expect(app._subapps.apps).to.have.key('/saboo')
-
       request(app)
         .get('/saboo/')
         .expect(200, done)
 
-    it '[ternary] should accept an app factory, and configure it'
+
+    it '[ternary] should accept an app factory, and configure it', (done) ->
+      customAppFactory = (options) ->
+        app = express()
+        # Based on configuration.
+        name = options.name ? 'Naboo'
+        identity = if options.parent? then "child" else "root"
+        app.get '/who-are-you', (req, res) ->
+          res.send(200, "#{identity}:#{name}")
+
+      mainApp = express()
+      subapps = harrison(mainApp)
+        # Third argument is required for second to be interpreted as
+        # appFactory!
+        .addApp('/', customAppFactory, {})
+        .addApp('/saboo', customAppFactory, name: 'Saboo')
+        .create()
+      mainApp.use(subapps)
+
+      # This is the callback to the first request...
+      testSaboo = (err)->
+        return done(err) if err?
+        request(mainApp)
+          .get('/saboo/who-are-you')
+          .expect('child:Saboo', done)
+
+      # *This* is the first request.
+      request(mainApp)
+        .get('/who-are-you')
+        .expect('child:Naboo', testSaboo)
+
 
     it 'should notify its child that it exists', ->
       app = express()
@@ -82,13 +102,7 @@ describe 'Harrison', ->
 
       expect(subapp.get('parent')).to.equal(app)
 
-    it 'should provide global routing...?'
 
-describe 'A subapp', ->
-  it 'should declare statics'
-  it 'should be mountable on another app'
-  it 'should respond to any sort of mount path'
-  it 'should still serve statics'
 
 describe 'The README example', ->
 

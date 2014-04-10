@@ -7,7 +7,8 @@ appFactory = require './index' # an app factory
 
 app = module.exports = express()
 
-app.use(express.logger('dev'))
+unless module.parent
+  app.use(express.logger('dev'))
 
 # Mounting as "main app".
 app.use(harrison(app)
